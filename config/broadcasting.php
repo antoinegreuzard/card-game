@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'default' => env('BROADCAST_CONNECTION', 'null'),
+    'default' => env('BROADCAST_CONNECTION', 'pusher'),
 
     /*
     |--------------------------------------------------------------------------
@@ -36,8 +36,8 @@ return [
             'secret' => env('REVERB_APP_SECRET'),
             'app_id' => env('REVERB_APP_ID'),
             'options' => [
-                'host' => env('REVERB_HOST'),
-                'port' => env('REVERB_PORT', 443),
+                'host' => env('REVERB_HOST', '127.0.0.1'),
+                'port' => env('REVERB_PORT', 8080),
                 'scheme' => env('REVERB_SCHEME', 'https'),
                 'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
             ],
@@ -53,8 +53,8 @@ return [
             'app_id' => env('PUSHER_APP_ID'),
             'options' => [
                 'cluster' => env('PUSHER_APP_CLUSTER'),
-                'host' => env('PUSHER_HOST') ?: 'api-'.env('PUSHER_APP_CLUSTER', 'mt1').'.pusher.com',
-                'port' => env('PUSHER_PORT', 443),
+                'host' => env('PUSHER_HOST') ?: 'api-' . env('PUSHER_APP_CLUSTER', 'mt1') . '.pusher.com',
+                'port' => env('PUSHER_PORT', 8080),
                 'scheme' => env('PUSHER_SCHEME', 'https'),
                 'encrypted' => true,
                 'useTLS' => env('PUSHER_SCHEME', 'https') === 'https',
@@ -77,6 +77,13 @@ return [
             'driver' => 'null',
         ],
 
+    ],
+
+    'cors' => [
+        'allowed_origins' => ['http://127.0.0.1:8000', 'http://localhost:8000'],
+        'allowed_methods' => ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        'allowed_headers' => ['Content-Type', 'X-Requested-With', 'Authorization'],
+        'supports_credentials' => true,
     ],
 
 ];
