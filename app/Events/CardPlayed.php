@@ -30,6 +30,11 @@ class CardPlayed implements ShouldBroadcast
     public function broadcastOn(): array
     {
         Log::info('Diffusion sur le canal public "game"');
+        Log::info('Diffusion sur le canal game : CardPlayed', ['card' => $this->card, 'player' => $this->player]);
+        Log::info('Diffusion de l\'événement CardPlayed sur le canal game', [
+            'card' => $this->card,
+            'player' => $this->player,
+        ]);
         return [new Channel('game')];
     }
 

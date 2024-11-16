@@ -8,11 +8,10 @@ export interface User {
 }
 
 export interface Card {
-    game_id: number;
-    owner_id: number;
+    code: string;
     value: string;
     suit: string;
-    is_played: boolean;
+    image: string;
 }
 
 export type PageProps<

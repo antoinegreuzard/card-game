@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Game;
 use Illuminate\Http\Request;
+use App\Events\PlayerJoined;
+use Illuminate\Support\Facades\Log;
 
 class LobbyController extends Controller
 {
@@ -11,19 +13,32 @@ class LobbyController extends Controller
     {
         $game = Game::create([
             'player1_id' => auth()->id(),
+            'status' => 'waiting',
         ]);
-        return response()->json($game);
+
+        return response()->json(['lobbyId' => $game->id]);
     }
 
     public function joinGame(Request $request): \Illuminate\Http\JsonResponse
     {
-        $game = Game::where('status', 'waiting')->first();
-        if ($game) {
-            $game->update([
-                'player2_id' => auth()->id(),
-                'status' => 'ready'
-            ]);
+        $lobbyId = $request->input('lobbyId');
+        $game = Game::find($lobbyId);
+
+        if (!$game || $game->status !== 'waiting') {
+            return response()->json(['success' => false, 'message' => 'Le salon est introuvable ou déjà en cours.']);
         }
-        return response()->json($game);
+
+        $game->update([
+            'player2_id' => auth()->id(),
+            'status' => 'ready',
+        ]);
+
+        // Diffuse l'événement PlayerJoined
+        broadcast(new PlayerJoined($game->id))->toOthers();
+
+        // Ajoutez un log pour vérifier que l'événement est bien diffusé
+        Log::info("Événement PlayerJoined diffusé pour le salon ID: {$lobbyId}");
+
+        return response()->json(['success' => true]);
     }
 }

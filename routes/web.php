@@ -8,11 +8,9 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return Inertia::render('GameBoard', [
+    return Inertia::render('Lobby', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
     ]);
 });
 
@@ -27,12 +25,13 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('/game/{id}', [GameController::class, 'show'])->name('game.show');
     Route::post('/lobby/create', [LobbyController::class, 'createGame']);
     Route::post('/lobby/join', [LobbyController::class, 'joinGame']);
     Route::post('/game/play', [GameController::class, 'playCard']);
     Route::get('/game/status/{id}', [GameController::class, 'status']);
     Route::post('/game/leave', [GameController::class, 'leaveGame']);
-    Route::get('/games', [GameController::class, 'listGames']);
+    Route::post('/game/end/{id}', [GameController::class, 'endGame']);
 });
 
 require __DIR__ . '/auth.php';
