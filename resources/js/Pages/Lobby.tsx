@@ -21,13 +21,13 @@ export default function Lobby() {
             const channel = window.Echo.channel(`lobby.${lobbyId}`);
             console.log(`✅ Abonné au canal lobby.${lobbyId}`);
 
-            channel.listen('.playerjoined', (data) => {
+            channel.listen('.playerjoined', (data: any) => {
                 console.log('🔔 Événement PlayerJoined reçu', data);
                 setMessage('Un joueur a rejoint le salon, redirection...');
                 window.location.href = `/game/${lobbyId}`;
             });
 
-            channel.listen('*', (eventName, data) => {
+            channel.listen('*', (eventName: any, data: any) => {
                 console.log(`🔍 Événement capturé : ${eventName}`, data);
             });
 

@@ -19,6 +19,7 @@ class CardController extends Controller
         $player = $request->user()->name;
         $card->update(['is_played' => true]);
 
+        // Diffusion de l'événement CardPlayed
         event(new CardPlayed($card->toArray(), $player));
 
         return response()->json(['success' => true, 'card' => $card]);

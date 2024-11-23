@@ -33,11 +33,13 @@ class LobbyController extends Controller
             'status' => 'ready',
         ]);
 
-        // Diffuse l'événement PlayerJoined
         broadcast(new PlayerJoined($game->id))->toOthers();
 
-        // Ajoutez un log pour vérifier que l'événement est bien diffusé
-        Log::info("Événement PlayerJoined diffusé pour le salon ID: {$lobbyId}");
+        Log::info("État du jeu mis à jour :", [
+            'player1_id' => $game->player1_id,
+            'player2_id' => $game->player2_id,
+            'status' => $game->status,
+        ]);
 
         return response()->json(['success' => true]);
     }

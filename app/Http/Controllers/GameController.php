@@ -52,6 +52,24 @@ class GameController extends Controller
         ]);
     }
 
+    public function getGameState($lobbyId)
+    {
+        $game = Game::find($lobbyId);
+
+        if (!$game) {
+            return response()->json(['error' => 'Partie introuvable'], 404);
+        }
+
+        // Exemple de données à retourner
+        return response()->json([
+            'playerDeck' => $game->player1_deck ?? [],
+            'opponentDeck' => $game->player2_deck ?? [],
+            'playedCards' => $game->played_cards ?? [],
+            'status' => $game->status,
+            'message' => 'En attente d\'un autre joueur...' // ou autre état pertinent
+        ]);
+    }
+
     public function endGame($id): \Illuminate\Http\JsonResponse
     {
         $game = Game::find($id);
