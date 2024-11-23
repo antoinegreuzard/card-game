@@ -24,14 +24,12 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::middleware('auth')->group(function () {
-    Route::get('/game/{id}', [GameController::class, 'show'])->name('game.show');
-    Route::post('/lobby/create', [LobbyController::class, 'createGame']);
-    Route::post('/lobby/join', [LobbyController::class, 'joinGame']);
-    Route::post('/game/play', [GameController::class, 'playCard']);
-    Route::get('/game/status/{id}', [GameController::class, 'status']);
-    Route::post('/game/leave', [GameController::class, 'leaveGame']);
-    Route::post('/game/end/{id}', [GameController::class, 'endGame']);
-});
+Route::get('/game/{id}', [GameController::class, 'show'])->name('game.show');
+Route::post('/lobby/create', [LobbyController::class, 'createGame']);
+Route::post('/lobby/join', [LobbyController::class, 'joinGame']);
+Route::post('/game/play', [GameController::class, 'playCard']);
+Route::get('/game/status/{id}', [GameController::class, 'status']);
+Route::post('/game/leave', [GameController::class, 'leaveGame']);
+Route::post('/game/end/{id}', [GameController::class, 'endGame']);
 
 require __DIR__ . '/auth.php';

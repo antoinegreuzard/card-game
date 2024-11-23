@@ -21,18 +21,14 @@ export default function Lobby() {
             const channel = window.Echo.channel(`lobby.${lobbyId}`);
             console.log(`✅ Abonné au canal lobby.${lobbyId}`);
 
-            channel.listen('PlayerJoined', () => {
-                console.log('🔔 Événement PlayerJoined reçu');
-                setMessage('Un joueur a rejoint le salon, redirection vers le GameBoard.');
+            channel.listen('.playerjoined', (data) => {
+                console.log('🔔 Événement PlayerJoined reçu', data);
+                setMessage('Un joueur a rejoint le salon, redirection...');
                 window.location.href = `/game/${lobbyId}`;
             });
 
-            channel.listen('pusher:subscription_error', (status: any) => {
-                console.error('Erreur d\'abonnement au canal :', status);
-            });
-
-            channel.listen('pusher:subscription_succeeded', () => {
-                console.log(`✅ Abonnement réussi au canal lobby.${lobbyId}`);
+            channel.listen('*', (eventName, data) => {
+                console.log(`🔍 Événement capturé : ${eventName}`, data);
             });
 
             return () => {
@@ -56,7 +52,7 @@ export default function Lobby() {
             if (lobbyId) {
                 setLobbyId(lobbyId);
                 setMessage(`Salon créé avec succès ! ID du salon : ${lobbyId}`);
-                navigator.clipboard.writeText(lobbyId);
+                await navigator.clipboard.writeText(lobbyId);
                 alert(`ID du salon copié dans le presse-papier : ${lobbyId}`);
             } else {
                 setError('Erreur : impossible de créer le salon.');
