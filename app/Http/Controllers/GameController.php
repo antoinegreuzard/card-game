@@ -46,9 +46,9 @@ class GameController extends Controller
         }
 
         return response()->json([
-            'playerDeck' => json_decode($game->player1_deck, true) ?? [],
-            'opponentDeck' => json_decode($game->player2_deck, true) ?? [],
-            'playedCards' => json_decode($game->played_cards, true) ?? [],
+            'playerDeck' => json_decode($game->player1_deck, true),
+            'opponentDeck' => json_decode($game->player2_deck, true),
+            'playedCards' => json_decode($game->played_cards, true),
             'status' => $game->status,
             'message' => $game->status === 'ready' ? 'La partie est prête à commencer' : 'En attente d\'un autre joueur...',
         ]);

@@ -18,9 +18,20 @@ class LobbyController extends Controller
         $pseudo = $request->input('pseudo', 'Joueur Anonyme');
 
         try {
+            // Initialisation des decks avec un exemple de cartes
+            $defaultDeck = json_encode([
+                ['value' => 'ACE', 'suit' => 'HEARTS'],
+                ['value' => '2', 'suit' => 'SPADES'],
+                ['value' => '3', 'suit' => 'DIAMONDS'],
+                // Ajoutez d'autres cartes si nécessaire
+            ]);
+
             $game = Game::create([
-                'player1_id' => $pseudo, // Sauvegarde du pseudo du créateur
+                'player1_id' => $pseudo,
                 'status' => 'waiting',
+                'player1_deck' => $defaultDeck,
+                'player2_deck' => json_encode([]), // Deck vide pour le joueur 2
+                'played_cards' => json_encode([]),
             ]);
 
             Log::info("Nouveau jeu créé :", [
@@ -56,11 +67,21 @@ class LobbyController extends Controller
         try {
             // Vérifier et assigner le joueur manquant
             if (!$game->player2_id) {
+                // Initialisation du deck pour le deuxième joueur
+                $defaultDeckPlayer2 = json_encode([
+                    ['value' => 'KING', 'suit' => 'HEARTS'],
+                    ['value' => '7', 'suit' => 'CLUBS'],
+                    ['value' => '9', 'suit' => 'DIAMONDS'],
+                    // Ajoutez d'autres cartes si nécessaire
+                ]);
+
                 $game->update([
                     'player2_id' => $pseudo,
+                    'player2_deck' => $defaultDeckPlayer2,
                     'status' => 'ready', // Met à jour le statut une fois les deux joueurs connectés
                 ]);
 
+                // Diffusion des événements pour informer les joueurs
                 broadcast(new PlayerJoined($game->id, $pseudo))->toOthers();
                 broadcast(new GameReady($game->id))->toOthers();
 

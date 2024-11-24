@@ -21,12 +21,16 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+// Routes pour le jeu
 Route::get('/game/{id}', [GameController::class, 'show'])->name('game.show');
-Route::post('/lobby/create', [LobbyController::class, 'createGame']);
-Route::post('/lobby/join', [LobbyController::class, 'joinGame']);
+Route::get('/game/{id}/state', [GameController::class, 'getGameState'])->name('game.state'); // Ajout de la route manquante
+Route::get('/game/status/{id}', [GameController::class, 'status'])->name('game.status');
 Route::post('/game/play', [GameController::class, 'playCard']);
-Route::get('/game/status/{id}', [GameController::class, 'status']);
 Route::post('/game/leave', [GameController::class, 'leaveGame']);
 Route::post('/game/end/{id}', [GameController::class, 'endGame']);
+
+// Routes pour le lobby
+Route::post('/lobby/create', [LobbyController::class, 'createGame']);
+Route::post('/lobby/join', [LobbyController::class, 'joinGame']);
 
 require __DIR__ . '/auth.php';
