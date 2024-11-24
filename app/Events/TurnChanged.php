@@ -6,9 +6,9 @@ use Illuminate\Broadcasting\Channel;
 
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 
-class GameEnded implements ShouldBroadcast
+class TurnChanged implements ShouldBroadcast
 {
-    public function __construct(public $winner)
+    public function __construct(public $lobbyId, public $currentTurn)
     {
     }
 
@@ -19,13 +19,11 @@ class GameEnded implements ShouldBroadcast
 
     public function broadcastAs(): string
     {
-        return 'gameended';
+        return 'turnchanged';
     }
 
     public function broadcastWith(): array
     {
-        return [
-            'winner' => $this->winner,
-        ];
+        return ['currentTurn' => $this->currentTurn];
     }
 }
