@@ -7,46 +7,53 @@ use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 
 class CardPlayed implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public array $card;
+    public array $playedCard;
+    public array $opponentCard;
     public string $player;
 
-    public function __construct(array $card, string $player)
+    /**
+     * Create a new event instance.
+     *
+     * @param array $playedCard
+     * @param array $opponentCard
+     * @param string $player
+     */
+    public function __construct(array $playedCard, array $opponentCard, string $player)
     {
-        $this->card = $card;
+        $this->playedCard = $playedCard;
+        $this->opponentCard = $opponentCard;
         $this->player = $player;
-
-        Log::info('Event CardPlayed déclenché', [
-            'player' => $player,
-            'card' => $card,
-        ]);
     }
 
-    public function broadcastOn(): array
+    /**
+     * Get the channels the event should broadcast on.
+     */
+    public function broadcastOn(): Channel
     {
-        Log::info('Diffusion sur le canal public "game"');
-        Log::info('Diffusion sur le canal game : CardPlayed', ['card' => $this->card, 'player' => $this->player]);
-        Log::info('Diffusion de l\'événement CardPlayed sur le canal game', [
-            'card' => $this->card,
-            'player' => $this->player,
-        ]);
-        return [new Channel('game')];
+        return new Channel('lobby.' . $this->player);
     }
 
+    /**
+     * The event's broadcast name.
+     */
     public function broadcastAs(): string
     {
-        return 'CardPlayed';
+        return 'cardplayed';
     }
 
+    /**
+     * Data to broadcast with the event.
+     */
     public function broadcastWith(): array
     {
         return [
-            'card' => $this->card,
+            'playedCard' => $this->playedCard,
+            'opponentCard' => $this->opponentCard,
             'player' => $this->player,
         ];
     }

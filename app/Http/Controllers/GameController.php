@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\CardPlayed;
 use App\Models\Game;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -46,11 +47,10 @@ class GameController extends Controller
         }
 
         return response()->json([
-            'playerDeck' => json_decode($game->player1_deck, true),
-            'opponentDeck' => json_decode($game->player2_deck, true),
-            'playedCards' => json_decode($game->played_cards, true),
+            'playerDeck' => json_decode($game->player1_deck),
+            'opponentDeck' => json_decode($game->player2_deck),
+            'playedCards' => json_decode($game->played_cards),
             'status' => $game->status,
-            'message' => $game->status === 'ready' ? 'La partie est prête à commencer' : 'En attente d\'un autre joueur...',
         ]);
     }
 
@@ -70,6 +70,72 @@ class GameController extends Controller
             'player1' => $game->player1_id,
             'player2' => $game->player2_id,
         ]);
+    }
+
+    public function playCard(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $lobbyId = $request->input('lobbyId');
+        $player = $request->input('player');
+
+        $game = Game::find($lobbyId);
+
+        if (!$game) {
+            return response()->json(['error' => 'Partie introuvable'], 404);
+        }
+
+        $playerDeck = json_decode($game->player1_deck, true);
+        $opponentDeck = json_decode($game->player2_deck, true);
+
+        if (empty($playerDeck) || empty($opponentDeck)) {
+            return response()->json(['error' => 'Aucune carte disponible pour jouer.'], 400);
+        }
+
+        // Jouer la première carte de chaque deck
+        $playedCard = array_shift($playerDeck);
+        $opponentCard = array_shift($opponentDeck);
+
+        // Comparer les valeurs des cartes
+        $playerValue = $this->getCardValue($playedCard['value']);
+        $opponentValue = $this->getCardValue($opponentCard['value']);
+
+        if ($playerValue > $opponentValue) {
+            $playerDeck[] = $playedCard;
+            $playerDeck[] = $opponentCard;
+        } elseif ($opponentValue > $playerValue) {
+            $opponentDeck[] = $playedCard;
+            $opponentDeck[] = $opponentCard;
+        }
+
+        // Mettre à jour les decks
+        $game->update([
+            'player1_deck' => json_encode($playerDeck),
+            'player2_deck' => json_encode($opponentDeck),
+            'played_cards' => json_encode([$playedCard, $opponentCard]),
+        ]);
+
+        // Diffuser l'événement TurnChanged
+        broadcast(new \App\Events\TurnChanged($lobbyId, $player === $game->player1_id ? $game->player2_id : $game->player1_id));
+
+        // Vérifier si le jeu est terminé
+        if (empty($playerDeck) || empty($opponentDeck)) {
+            $winner = empty($playerDeck) ? $game->player2_id : $game->player1_id;
+            $game->update(['status' => 'finished']);
+            broadcast(new \App\Events\GameEnded($winner));
+
+            return response()->json(['success' => true, 'winner' => $winner]);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    private function getCardValue(string $value): int
+    {
+        if (is_numeric($value)) {
+            return (int)$value;
+        }
+
+        $values = ['JACK' => 11, 'QUEEN' => 12, 'KING' => 13, 'ACE' => 14];
+        return $values[$value] ?? 0;
     }
 
     /**

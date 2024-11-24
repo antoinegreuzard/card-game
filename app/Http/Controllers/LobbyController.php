@@ -18,26 +18,12 @@ class LobbyController extends Controller
         $pseudo = $request->input('pseudo', 'Joueur Anonyme');
 
         try {
-            // Initialisation des decks avec un exemple de cartes
-            $defaultDeck = json_encode([
-                ['value' => 'ACE', 'suit' => 'HEARTS'],
-                ['value' => '2', 'suit' => 'SPADES'],
-                ['value' => '3', 'suit' => 'DIAMONDS'],
-                // Ajoutez d'autres cartes si nécessaire
-            ]);
-
             $game = Game::create([
                 'player1_id' => $pseudo,
                 'status' => 'waiting',
-                'player1_deck' => $defaultDeck,
+                'player1_deck' => json_encode($this->generateDeck()),
                 'player2_deck' => json_encode([]), // Deck vide pour le joueur 2
                 'played_cards' => json_encode([]),
-            ]);
-
-            Log::info("Nouveau jeu créé :", [
-                'game_id' => $game->id,
-                'player1' => $pseudo,
-                'status' => $game->status,
             ]);
 
             return response()->json(['lobbyId' => $game->id]);
@@ -54,30 +40,21 @@ class LobbyController extends Controller
     {
         $lobbyId = $request->input('lobbyId');
         $pseudo = $request->input('pseudo', 'Joueur Anonyme');
+
         $game = Game::find($lobbyId);
 
-        if (!$game) {
-            return response()->json(['success' => false, 'message' => 'Le salon est introuvable.'], 404);
-        }
-
-        if ($game->status === 'ready') {
-            return response()->json(['success' => false, 'message' => 'Le salon est déjà en cours.'], 400);
+        if (!$game || $game->status === 'ready') {
+            return response()->json(['success' => false, 'message' => 'Le salon est complet ou introuvable.'], 400);
         }
 
         try {
             // Vérifier et assigner le joueur manquant
             if (!$game->player2_id) {
                 // Initialisation du deck pour le deuxième joueur
-                $defaultDeckPlayer2 = json_encode([
-                    ['value' => 'KING', 'suit' => 'HEARTS'],
-                    ['value' => '7', 'suit' => 'CLUBS'],
-                    ['value' => '9', 'suit' => 'DIAMONDS'],
-                    // Ajoutez d'autres cartes si nécessaire
-                ]);
 
                 $game->update([
                     'player2_id' => $pseudo,
-                    'player2_deck' => $defaultDeckPlayer2,
+                    'player2_deck' => json_encode($this->generateDeck()),
                     'status' => 'ready', // Met à jour le statut une fois les deux joueurs connectés
                 ]);
 
@@ -95,5 +72,21 @@ class LobbyController extends Controller
             Log::error("Erreur lors de la mise à jour du jeu :", ['message' => $e->getMessage()]);
             return response()->json(['error' => 'Impossible de rejoindre le jeu.'], 500);
         }
+    }
+
+    private function generateDeck(): array
+    {
+        $suits = ['HEARTS', 'DIAMONDS', 'CLUBS', 'SPADES'];
+        $values = array_merge(range(2, 10), ['JACK', 'QUEEN', 'KING', 'ACE']);
+        $deck = [];
+
+        foreach ($suits as $suit) {
+            foreach ($values as $value) {
+                $deck[] = ['value' => $value, 'suit' => $suit];
+            }
+        }
+
+        shuffle($deck);
+        return array_slice($deck, 0, 26); // 26 cartes par joueur
     }
 }

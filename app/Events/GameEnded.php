@@ -26,6 +26,7 @@ class GameEnded implements ShouldBroadcast
     {
         return [
             'winner' => $this->winner,
+            'message' => $this->winner . ' a gagné la partie ! 🎉',
         ];
     }
 }

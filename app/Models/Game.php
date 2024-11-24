@@ -9,12 +9,20 @@ class Game extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['player1_id', 'player2_id', 'status'];
+    protected $fillable = [
+        'player1_id',
+        'player2_id',
+        'player1_deck',
+        'player2_deck',
+        'played_cards',
+        'status',
+    ];
 
-    public function cards(): \Illuminate\Database\Eloquent\Relations\HasMany
-    {
-        return $this->hasMany(Card::class);
-    }
+    protected $casts = [
+        'player1_deck' => 'array',
+        'player2_deck' => 'array',
+        'played_cards' => 'array',
+    ];
 
     public function hasPlayer($userId): bool
     {

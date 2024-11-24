@@ -50,24 +50,6 @@ export default function GameBoard({lobbyId, playerPseudo}: { lobbyId: string; pl
     }, [gameReady, isInitialized]);
 
     useEffect(() => {
-        const checkGameStatus = async () => {
-            try {
-                const {data} = await axios.get(`/game/status/${lobbyId}`);
-                if (data.status === 'ready' && !gameReady) {
-                    setGameReady(true);
-                    setMessage('La partie est prête à commencer.');
-                }
-            } catch (error) {
-                console.error('Erreur lors de la vérification du statut du jeu:', error);
-            }
-        };
-
-        if (!gameReady) {
-            checkGameStatus();
-        }
-    }, [gameReady, lobbyId]);
-
-    useEffect(() => {
         const channel = window.Echo.channel(`lobby.${lobbyId}`);
 
         channel.listen('.playerjoined', (data: any) => {
@@ -81,13 +63,19 @@ export default function GameBoard({lobbyId, playerPseudo}: { lobbyId: string; pl
         });
 
         channel.listen('.turnchanged', (data: { currentTurn: string }) => {
-            console.log('🔄 Tour changé', data);
+            console.log('🔄 Tour changé pour :', data.currentTurn);
             setIsPlayerTurn(data.currentTurn === playerPseudo);
         });
 
-        channel.listen('.cardplayed', (data: { card: Card }) => {
-            console.log('Carte jouée :', data);
-            setPlayedCards((prev) => [...prev, data.card]);
+        channel.listen('.cardplayed', (data: { playedCard: Card, opponentCard: Card }) => {
+            console.log('🔔 Carte jouée :', data);
+            setPlayedCards([data.playedCard, data.opponentCard]);
+        });
+
+        channel.listen('.gameended', (data: { winner: string }) => {
+            console.log('🎉 Fin de partie, gagnant :', data.winner);
+            setMessage(`${data.winner} a gagné la partie ! 🎉`);
+            setGameReady(false);
         });
 
         return () => {
@@ -96,7 +84,7 @@ export default function GameBoard({lobbyId, playerPseudo}: { lobbyId: string; pl
     }, [lobbyId, playerPseudo]);
 
     const playCard = async () => {
-        if (!isPlayerTurn || playerDeck.length === 0) {
+        if (!isPlayerTurn || playerDeck.length === 0 || !gameReady) {
             setMessage('Ce n\'est pas votre tour ou votre deck est vide.');
             return;
         }
@@ -209,4 +197,3 @@ export default function GameBoard({lobbyId, playerPseudo}: { lobbyId: string; pl
         </>
     );
 }
-        
