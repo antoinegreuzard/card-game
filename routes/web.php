@@ -8,11 +8,8 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return Inertia::render('Lobby', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-    ]);
-});
+    return Inertia::render('Lobby'); // Utilisez le composant Lobby
+})->name('lobby'); // Ajoutez un nom à cette route
 
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');

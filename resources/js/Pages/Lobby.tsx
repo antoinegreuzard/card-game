@@ -23,12 +23,13 @@ export default function Lobby() {
 
             channel.listen('.playerjoined', (data: any) => {
                 console.log('🔔 Événement PlayerJoined reçu', data);
-                setMessage('Un joueur a rejoint le salon, redirection...');
-                window.location.href = `/game/${lobbyId}`;
+                setMessage(`${data.playerName} a rejoint le salon.`);
             });
 
-            channel.listen('*', (eventName: any, data: any) => {
-                console.log(`🔍 Événement capturé : ${eventName}`, data);
+            channel.listen('.gameready', (data: any) => {
+                console.log('🔔 Événement GameReady reçu', data);
+                setMessage('La partie est prête. Redirection...');
+                window.location.href = `/game/${lobbyId}`;
             });
 
             return () => {
@@ -50,10 +51,8 @@ export default function Lobby() {
             const response = await axios.post('/lobby/create', {pseudo});
             const {lobbyId} = response.data;
             if (lobbyId) {
-                setLobbyId(lobbyId);
-                setMessage(`Salon créé avec succès ! ID du salon : ${lobbyId}`);
-                await navigator.clipboard.writeText(lobbyId);
-                alert(`ID du salon copié dans le presse-papier : ${lobbyId}`);
+                console.log(`Salon créé avec succès. Redirection vers /game/${lobbyId}`);
+                window.location.href = `/game/${lobbyId}`;
             } else {
                 setError('Erreur : impossible de créer le salon.');
                 setIsCreating(false);
@@ -76,13 +75,14 @@ export default function Lobby() {
         try {
             const response = await axios.post('/lobby/join', {pseudo, lobbyId});
             if (response.data.success) {
+                console.log(`Redirection vers /game/${lobbyId}`);
                 window.location.href = `/game/${lobbyId}`;
             } else {
                 setError(response.data.message || 'Impossible de rejoindre le salon.');
             }
         } catch (error) {
+            console.error('Erreur lors de la tentative de rejoindre le salon :', error);
             setError('Une erreur est survenue lors de la tentative de rejoindre le salon.');
-            console.error(error);
         }
     };
 

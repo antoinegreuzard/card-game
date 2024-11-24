@@ -8,23 +8,20 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class PlayerJoined implements ShouldBroadcast
+class GameReady implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public int $lobbyId;
-    public string $playerName;
 
     /**
-     * Crée un nouvel événement PlayerJoined.
+     * Crée un nouvel événement GameReady.
      *
      * @param int $lobbyId
-     * @param string $playerName
      */
-    public function __construct(int $lobbyId, string $playerName)
+    public function __construct(int $lobbyId)
     {
         $this->lobbyId = $lobbyId;
-        $this->playerName = $playerName;
     }
 
     /**
@@ -40,7 +37,7 @@ class PlayerJoined implements ShouldBroadcast
      */
     public function broadcastAs(): string
     {
-        return 'playerjoined';
+        return 'gameready';
     }
 
     /**
@@ -50,7 +47,7 @@ class PlayerJoined implements ShouldBroadcast
     {
         return [
             'lobbyId' => $this->lobbyId,
-            'playerName' => $this->playerName,
+            'status' => 'ready',
             'timestamp' => now()->toDateTimeString(),
         ];
     }

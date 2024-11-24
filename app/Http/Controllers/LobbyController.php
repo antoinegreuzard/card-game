@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\GameReady;
 use App\Models\Game;
 use Illuminate\Http\Request;
 use App\Events\PlayerJoined;
@@ -9,38 +10,69 @@ use Illuminate\Support\Facades\Log;
 
 class LobbyController extends Controller
 {
+    /**
+     * Crée un nouveau jeu (lobby).
+     */
     public function createGame(Request $request): \Illuminate\Http\JsonResponse
     {
-        $game = Game::create([
-            'player1_id' => auth()->id(),
-            'status' => 'waiting',
-        ]);
+        $pseudo = $request->input('pseudo', 'Joueur Anonyme');
 
-        return response()->json(['lobbyId' => $game->id]);
+        try {
+            $game = Game::create([
+                'player1_id' => $pseudo, // Sauvegarde du pseudo du créateur
+                'status' => 'waiting',
+            ]);
+
+            Log::info("Nouveau jeu créé :", [
+                'game_id' => $game->id,
+                'player1' => $pseudo,
+                'status' => $game->status,
+            ]);
+
+            return response()->json(['lobbyId' => $game->id]);
+        } catch (\Exception $e) {
+            Log::error("Erreur lors de la création du jeu :", ['message' => $e->getMessage()]);
+            return response()->json(['error' => 'Impossible de créer le jeu.'], 500);
+        }
     }
 
+    /**
+     * Rejoint un jeu existant (lobby).
+     */
     public function joinGame(Request $request): \Illuminate\Http\JsonResponse
     {
         $lobbyId = $request->input('lobbyId');
+        $pseudo = $request->input('pseudo', 'Joueur Anonyme');
         $game = Game::find($lobbyId);
 
-        if (!$game || $game->status !== 'waiting') {
-            return response()->json(['success' => false, 'message' => 'Le salon est introuvable ou déjà en cours.']);
+        if (!$game) {
+            return response()->json(['success' => false, 'message' => 'Le salon est introuvable.'], 404);
         }
 
-        $game->update([
-            'player2_id' => auth()->id(),
-            'status' => 'ready',
-        ]);
+        if ($game->status === 'ready') {
+            return response()->json(['success' => false, 'message' => 'Le salon est déjà en cours.'], 400);
+        }
 
-        broadcast(new PlayerJoined($game->id))->toOthers();
+        try {
+            // Vérifier et assigner le joueur manquant
+            if (!$game->player2_id) {
+                $game->update([
+                    'player2_id' => $pseudo,
+                    'status' => 'ready', // Met à jour le statut une fois les deux joueurs connectés
+                ]);
 
-        Log::info("État du jeu mis à jour :", [
-            'player1_id' => $game->player1_id,
-            'player2_id' => $game->player2_id,
-            'status' => $game->status,
-        ]);
+                broadcast(new PlayerJoined($game->id, $pseudo))->toOthers();
+                broadcast(new GameReady($game->id))->toOthers();
 
-        return response()->json(['success' => true]);
+                Log::info("Événement PlayerJoined diffusé pour le salon ID: {$game->id} avec {$pseudo} comme joueur 2.");
+            } else {
+                return response()->json(['success' => false, 'message' => 'Le salon est complet.'], 400);
+            }
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            Log::error("Erreur lors de la mise à jour du jeu :", ['message' => $e->getMessage()]);
+            return response()->json(['error' => 'Impossible de rejoindre le jeu.'], 500);
+        }
     }
 }

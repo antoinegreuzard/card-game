@@ -1,19 +1,19 @@
 import {useEffect, useState} from 'react';
-import {Card} from '@/types';
+import {Card} from '@/types'; // Assurez-vous que le type Card est défini correctement
 import CardComponent from '@/Components/Card';
 import axios from 'axios';
 import {Head} from '@inertiajs/react';
 
-export default function GameBoard({lobbyId, playerPseudo}: { lobbyId: string, playerPseudo: string }) {
+export default function GameBoard({lobbyId, playerPseudo}: { lobbyId: string; playerPseudo: string }) {
     const [playerDeck, setPlayerDeck] = useState<Card[]>([]);
     const [opponentDeck, setOpponentDeck] = useState<Card[]>([]);
     const [playedCards, setPlayedCards] = useState<Card[]>([]);
-    const [message, setMessage] = useState('');
+    const [message, setMessage] = useState('En attente d\'un autre joueur...');
     const [history, setHistory] = useState<string[]>([]);
-    const [isPlayerTurn, setIsPlayerTurn] = useState(true);
-    const [gameReady, setGameReady] = useState(false);
+    const [isPlayerTurn, setIsPlayerTurn] = useState(false); // False par défaut
+    const [gameReady, setGameReady] = useState(false); // Indique si le jeu est prêt à démarrer
 
-    // Initialiser la partie
+    // Fonction d'initialisation du jeu
     const initializeGame = async () => {
         try {
             const {data} = await axios.get(`/game/${lobbyId}/state`);
@@ -29,38 +29,66 @@ export default function GameBoard({lobbyId, playerPseudo}: { lobbyId: string, pl
             setPlayedCards([]);
             setMessage('La partie commence !');
             setGameReady(data.status === 'ready');
+            setIsPlayerTurn(data.currentTurn === playerPseudo); // Détermine si c'est le tour du joueur
         } catch (error) {
             console.error('❌ Erreur lors de l\'initialisation du jeu :', error);
             setMessage('Impossible de démarrer la partie.');
         }
     };
 
-    // Écouter l'événement PlayerJoined
+    useEffect(() => {
+        const checkGameStatus = async () => {
+            try {
+                const {data} = await axios.get(`/game/status/${lobbyId}`);
+                if (data.status === 'ready') {
+                    setGameReady(true);
+                    setMessage('La partie est prête à commencer.');
+                }
+            } catch (error) {
+                console.error('Erreur lors de la vérification du statut du jeu:', error);
+            }
+        };
+
+        if (!gameReady) {
+            checkGameStatus();
+        }
+    }, [gameReady, lobbyId]);
+
+    // Écoute les événements en temps réel
     useEffect(() => {
         const channel = window.Echo.channel(`lobby.${lobbyId}`);
 
-        channel.listen('.playerjoined', () => {
-            console.log('Un joueur a rejoint le salon, la partie peut commencer.');
-            initializeGame();
+        // Événement lorsqu'un joueur rejoint
+        channel.listen('.playerjoined', (data: any) => {
+            console.log('🔔 Événement PlayerJoined reçu', data);
+            setMessage(`${data.playerName} a rejoint le salon, redirection...`);
+            window.location.href = `/game/${lobbyId}`;
         });
 
-        channel.listen('.turnchanged', (data: { currentTurn: string; }) => {
+        // Événement pour gérer le changement de tour
+        channel.listen('.turnchanged', (data: { currentTurn: string }) => {
             console.log('🔄 Tour changé', data);
             setIsPlayerTurn(data.currentTurn === playerPseudo);
         });
 
-        channel.listen('.cardplayed', (data: { card: Card; }) => {
+        // Événement pour gérer les cartes jouées
+        channel.listen('.cardplayed', (data: { card: Card }) => {
             console.log('Carte jouée :', data);
             setPlayedCards((prev) => [...prev, data.card]);
         });
 
+        // Nettoyage lors du démontage du composant
         return () => {
             window.Echo.leaveChannel(`lobby.${lobbyId}`);
         };
-    }, [lobbyId]);
+    }, [lobbyId, playerPseudo]);
 
+    // Fonction pour jouer une carte
     const playCard = async () => {
-        if (!isPlayerTurn || playerDeck.length === 0) return;
+        if (!isPlayerTurn || playerDeck.length === 0) {
+            setMessage('Ce n\'est pas votre tour ou votre deck est vide.');
+            return;
+        }
 
         try {
             const response = await axios.post(`/game/${lobbyId}/play`, {card: playerDeck[0]});
@@ -72,10 +100,12 @@ export default function GameBoard({lobbyId, playerPseudo}: { lobbyId: string, pl
             const playerCard = playerDeck[0];
             const opponentCard = opponentDeck[0];
 
+            // Mise à jour des états après avoir joué
             setPlayedCards([playerCard, opponentCard]);
             setPlayerDeck(playerDeck.slice(1));
             setOpponentDeck(opponentDeck.slice(1));
 
+            // Calcul des résultats du tour
             const playerValue = getCardValue(playerCard.value);
             const opponentValue = getCardValue(opponentCard.value);
 
@@ -108,12 +138,14 @@ export default function GameBoard({lobbyId, playerPseudo}: { lobbyId: string, pl
         }
     };
 
+    // Fonction pour obtenir la valeur d'une carte
     const getCardValue = (value: string) => {
         if (['JACK', 'QUEEN', 'KING'].includes(value)) return 11 + ['JACK', 'QUEEN', 'KING'].indexOf(value);
         if (value === 'ACE') return 14;
-        return parseInt(value);
+        return parseInt(value, 10);
     };
 
+    // Vérifie si le jeu est terminé
     const checkGameEnd = () => {
         if (playerDeck.length === 0 || opponentDeck.length === 0) {
             const winner = playerDeck.length > 0 ? 'Vous gagnez ! 🎉' : 'L\'adversaire gagne ! 😢';
@@ -122,17 +154,14 @@ export default function GameBoard({lobbyId, playerPseudo}: { lobbyId: string, pl
         }
     };
 
+    // Effet pour vérifier la fin du jeu
     useEffect(() => {
-        if (!gameReady) {
-            setMessage('En attente d\'un autre joueur...');
-            return;
-        }
-
-        if (playerDeck.length === 0 || opponentDeck.length === 0) {
+        if (gameReady && (playerDeck.length === 0 || opponentDeck.length === 0)) {
             checkGameEnd();
         }
     }, [gameReady, playerDeck, opponentDeck]);
 
+    // Rendu du composant
     return (
         <>
             <Head title={`Jeu de Bataille - Salon ${lobbyId}`}/>
@@ -167,12 +196,8 @@ export default function GameBoard({lobbyId, playerPseudo}: { lobbyId: string, pl
                         </div>
                     </>
                 ) : (
-                    <div>En attente d'un autre joueur...</div>
+                    <div>{message}</div>
                 )}
-
-                <div className="mt-4">
-                    <p>{message}</p>
-                </div>
             </div>
         </>
     );
